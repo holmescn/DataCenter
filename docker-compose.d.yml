@@ -1,0 +1,38 @@
+version: "3.5"
+services:
+  TDengine:
+    image: "datacenter/tdengine:1.6.5"
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.tdengine
+    restart: always
+    volumes:
+      - type: bind
+        source: ./deps/TDengine
+        target: /tmp/src
+    volumes:
+      - type: volume
+        source: TDengine_data
+        target: /var/lib/taos
+    ports:
+      - "127.0.0.1:6030:6030/udp"
+  redis:
+    image: "redis:5-alpine"
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+  dev:
+    image: datacenter/datacenter:dev
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.dev
+    volumes:
+      - type: bind
+        source: .
+        target: /tmp/src
+    links:
+      - TDengine
+      - redis
+    command: /bin/bash
+volumes:
+  TDengine_data: {}

@@ -1,0 +1,16 @@
+FROM ubuntu:18.04
+
+RUN sed -i -E "s/(archive|security)\.ubuntu\.com/mirrors.aliyun.com/" /etc/apt/sources.list \
+    && apt-get update \
+    && apt-get install -y build-essential vim git locales curl unzip tar ninja-build \
+       apt-transport-https ca-certificates gnupg software-properties-common wget \
+    && sed -i -E "s/^#\s*(en_US.UTF-8|zh_CN.UTF-8)/\1/" /etc/locale.gen \
+    && locale-gen \
+    && wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add - \
+    && apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main' \
+    && apt-get update \
+    && apt-get install -y kitware-archive-keyring \
+    && apt-key --keyring /etc/apt/trusted.gpg del C1F34CDD40CD72DA \
+    && apt-get install -y cmake
+
+WORKDIR /tmp

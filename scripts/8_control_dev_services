@@ -1,0 +1,19 @@
+#!/bin/sh
+OPTS="-f docker-compose.d.yml -p datacenter_dev"
+case $1 in
+up)
+    echo Start development services
+    docker-compose $OPTS run --rm --service-ports dev
+	;;
+down)
+    echo Stop development services
+    docker-compose $OPTS down
+	;;
+restart)
+    echo Restart development service $2
+    docker-compose $OPTS restart $2
+	;;
+*)
+	echo "Usage: $0 {up|down}"
+	;;
+esac

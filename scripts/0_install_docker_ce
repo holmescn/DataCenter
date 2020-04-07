@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# 从阿里云的镜像安装 Docker CE
+# 参考：https://help.aliyun.com/document_detail/60742.html
+
+# step 1: 安装必要的一些系统工具
+apt-get update
+apt-get -y install apt-transport-https ca-certificates curl software-properties-common
+
+# step 2: 安装GPG证书
+curl -fsSL http://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | apt-key add -
+
+# Step 3: 写入软件源信息
+add-apt-repository "deb [arch=amd64] http://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable"
+
+# Step 4: 更新并安装Docker-CE
+apt-get -y update
+apt-get -y install docker-ce
+wget -O /tmp/docker-compose -L https://github.com/docker/compose/releases/download/1.22.0/docker-compose-Linux-x86_64
+chmod +x /tmp/docker-compose
