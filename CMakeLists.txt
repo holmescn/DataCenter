@@ -16,12 +16,11 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package (Threads REQUIRED)
 
 include_directories(
+	${PROJECT_SOURCE_DIR}/include
 	${PROJECT_SOURCE_DIR}/deps/concurrentqueue
 	${PROJECT_SOURCE_DIR}/deps/cxxopts/include
 	${PROJECT_SOURCE_DIR}/deps/json/single_include
 	${PROJECT_SOURCE_DIR}/deps/spdlog/include
-	${PROJECT_SOURCE_DIR}/deps/cpp_redis/includes
-	${PROJECT_SOURCE_DIR}/deps/cpp_redis/tacopie/includes
 )
 
 if (WIN32)
@@ -35,14 +34,14 @@ else()
 endif(WIN32)
 
 add_subdirectory ("deps/nng")
-add_subdirectory ("deps/spdlog")
+	add_subdirectory ("deps/spdlog")
 
 if (WIN32)
 	add_subdirectory ("nezipreceiver")
+
+	# For development
+	add_subdirectory ("nezipsaver")
+else()
+	add_subdirectory ("nezipsaver")
+	# install(FILES ${CTPLib_LIBRARIES} DESTINATION lib)
 endif()
-
-# add_subdirectory ("storageservice")
-# add_subdirectory ("rpcservice")
-# add_subdirectory ("ctp_market_data")
-
-# install(FILES ${CTPLib_LIBRARIES} DESTINATION lib)

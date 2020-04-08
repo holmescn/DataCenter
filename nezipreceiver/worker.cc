@@ -62,7 +62,7 @@ void Worker::aio_cb(void* arg)
 			nng_msg *msg = nng_aio_get_msg(w->aio);
 			size_t bodyLen = nng_msg_len(msg);
 			char* body = reinterpret_cast<char*>(nng_msg_body(msg));
-			if (bodyLen >= 2 && memcmp(body, "OK", 2) == 0) {
+			if (bodyLen >= 3 && memcmp(body, "ACK", 3) == 0) {
 				w->state = State::WaitData;
 				nng_sleep_aio(1, w->aio);
 				// TODO notify main window
