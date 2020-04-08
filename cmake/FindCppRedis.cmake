@@ -1,0 +1,18 @@
+set(DEPS_DIR "${CMAKE_SOURCE_DIR}/deps")
+find_path(CPPREDIS_INCLUDE_DIR cpp_redis HINT "${DEPS_DIR}/cpp_redis/includes")
+find_path(TACOPIE_INCLUDE_DIR tacopie HINT "${DEPS_DIR}/cpp_redis/tacopie/includes")
+
+if (WIN32)
+	set(DEPS_BUILD_DIR "${DEPS_DIR}/build")
+	find_library(CPPREDIS_LIB cpp_redis PATHS "${DEPS_BUILD_DIR}/cpp_redis/lib/Debug")
+	find_library(TACOPIE_LIB tacopie PATHS "${DEPS_BUILD_DIR}/cpp_redis/lib/Debug")
+else()
+	set(DEPS_BUILD_DIR "/tmp/build")
+	find_library(CPPREDIS_LIB cpp_redis PATHS "${DEPS_BUILD_DIR}/cpp_redis/lib/Debug")
+	find_library(TACOPIE_LIB tacopie PATHS "${DEPS_BUILD_DIR}/cpp_redis/lib/Debug")
+endif()
+
+set(CppRedis_LIBRARIES ${CPPREDIS_LIB} ${TACOPIE_LIB})
+set(CppRedis_INCLUDE_DIRS ${CPPREDIS_INCLUDE_DIR} ${TACOPIE_INCLUDE_DIR})
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(CppRedis DEFAULT_MSG CPPREDIS_LIB TACOPIE_LIB CppRedis_INCLUDE_DIR)

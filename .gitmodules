@@ -1,0 +1,9 @@
+[submodule "deps/concurrentqueue"]
+	path = deps/concurrentqueue
+	url = https://github.com/cameron314/concurrentqueue.git
+[submodule "deps/cpp_redis"]
+	path = deps/cpp_redis
+	url = http://github.com/cpp-redis/cpp_redis.git
+[submodule "deps/json"]
+	path = deps/json
+	url = https://github.com/nlohmann/json.git

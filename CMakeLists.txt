@@ -2,10 +2,47 @@
 # 项目特定的逻辑。
 #
 cmake_minimum_required (VERSION 3.8)
+cmake_policy(SET CMP0077 NEW)
 
 project ("DataCenter")
 
-# 将源代码添加到此项目的可执行文件。
-add_executable (DataCenter "DataCenter.cpp" "DataCenter.h")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-# TODO: 如有需要，请添加测试并安装目标。
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package (Threads REQUIRED)
+
+include_directories(
+	${PROJECT_SOURCE_DIR}/deps/concurrentqueue
+	${PROJECT_SOURCE_DIR}/deps/cxxopts/include
+	${PROJECT_SOURCE_DIR}/deps/json/single_include
+	${PROJECT_SOURCE_DIR}/deps/spdlog/include
+	${PROJECT_SOURCE_DIR}/deps/cpp_redis/includes
+	${PROJECT_SOURCE_DIR}/deps/cpp_redis/tacopie/includes
+)
+
+if (WIN32)
+	add_definitions(-DWIN32_LEAN_AND_MEAN)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+else()
+	set(CMAKE_C_FLAGS_DEBUG "-g -ggdb -pg -fsanitize=undefined -Wall -Wextra")
+	set(CMAKE_C_FLAGS_RELEASE "-O2")
+	set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
+	set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
+endif(WIN32)
+
+add_subdirectory ("deps/nng")
+add_subdirectory ("deps/spdlog")
+
+if (WIN32)
+	add_subdirectory ("nezipreceiver")
+endif()
+
+# add_subdirectory ("storageservice")
+# add_subdirectory ("rpcservice")
+# add_subdirectory ("ctp_market_data")
+
+# install(FILES ${CTPLib_LIBRARIES} DESTINATION lib)

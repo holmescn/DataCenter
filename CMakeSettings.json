@@ -1,0 +1,23 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x86-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x86" ],
+      "buildRoot": "D:\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
+      "installRoot": "D:\\CMakeBuilds\\${workspaceHash}\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "-v",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "NNG_TESTS",
+          "value": "False",
+          "type": "BOOL"
+        }
+      ],
+      "cmakeToolchain": "D:\\Work\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake"
+    }
+  ]
+}
