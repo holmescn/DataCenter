@@ -1,4 +1,6 @@
 #include <cstdio>
+#include <spdlog/spdlog.h>
+#include <nng/nng.h>
 #include <nng/protocol/reqrep0/rep.h>
 #include "service.h"
 
@@ -35,16 +37,28 @@ void Service::StartReceivers(const char* url)
 		fatal("nng_listen", rv);
 	}
 
+	spdlog::info("{} Receivers listen on {}", m_nReceivers, url);
+
 	for (auto &r : m_receivers) {
 		// this starts them going (INIT state)
 		Receiver::aio_cb(&r);
 	}
 }
 
-void Service::StartSavers()
+void Service::StartSavers(const std::string& ip, const std::string& user, const std::string& pass, int port)
 {
+	taos_options(TSDB_OPTION_LOCALE, "en_US.UTF-8");
+	taos_options(TSDB_OPTION_CHARSET, "UTF-8");
+
 	for (size_t i = 0; i < m_nSavers; i++) {
 		m_savers.emplace_front(m_bufferQueue, m_fExit);
+		Saver& s = m_savers.front();
+		
+		s.SetTDengineIP(ip);
+		s.SetTDengineUser(user);
+		s.SetTDenginePassword(pass);
+		s.SetTDenginePort(port);
+		s.Start();
 	}
 }
 

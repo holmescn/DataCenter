@@ -1,3 +1,5 @@
+#include <cstring>
+#include <spdlog/spdlog.h>
 #include "receiver.h"
 
 static void fatal(const char* func, int rv)
@@ -14,7 +16,7 @@ Receiver::Receiver(BufferQueue_t& q)
 
 Receiver::~Receiver()
 {
-
+	//
 }
 
 void Receiver::aio_cb(void* arg)
@@ -26,22 +28,26 @@ void Receiver::aio_cb(void* arg)
 	switch (w->state)
 	{
 	case State::Start:
-		w->state = State::Recv;
+		w->state = State::RecvData;
 		nng_ctx_recv(w->ctx, w->aio);
 		break;
-	case State::Recv:
+	case State::RecvData:
 		if ((rv = nng_aio_result(w->aio)) == 0) {
 			msg = nng_aio_get_msg(w->aio);
-			w->EnqueueMessage(msg);
+			if (w->EnqueueMessage(msg)) {
+				w->SendAck();
+				spdlog::info("Received and enqueued a tick, ack.");
+			}
 		}
 		else {
 			fatal("nng_ctx_recv", rv);
 		}
 		break;
-	case State::Send:
+	case State::SendAck:
 		if ((rv = nng_aio_result(w->aio)) == 0) {
-			w->state = State::Recv;
+			w->state = State::RecvData;
 			nng_ctx_recv(w->ctx, w->aio);
+			spdlog::info("Ack is sent, back to recv data.");
 		}
 		else {
 			fatal("nng_ctx_send", rv);
@@ -52,8 +58,9 @@ void Receiver::aio_cb(void* arg)
 	}
 }
 
-void Receiver::EnqueueMessage(nng_msg* msg)
+bool Receiver::EnqueueMessage(nng_msg* msg)
 {
+	bool isValidMessage = false;
 	size_t bodySize = nng_msg_len(msg);
 	RCV_REPORT_STRUCTEx rcvData;
 	if (bodySize == sizeof rcvData) {
@@ -61,14 +68,19 @@ void Receiver::EnqueueMessage(nng_msg* msg)
 		memcpy(&rcvData, body, sizeof rcvData);
 		bufferQueue.enqueue(rcvData);
 
-		SendAck();
+		isValidMessage = true;
+		spdlog::info("Received a valid data");
 	}
 	else {
 		// TODO invalid message.
 		nng_ctx_recv(this->ctx, this->aio);
+		isValidMessage = false;
+		spdlog::info("Received an invalid data, bodySize: {}, rcvData size: {}; DWORD: {}",
+			bodySize, sizeof rcvData, sizeof(DWORD));
 	}
 
 	nng_msg_free(msg);
+	return isValidMessage;
 }
 
 void Receiver::SendAck()
@@ -77,16 +89,15 @@ void Receiver::SendAck()
 	nng_msg* msg = nullptr;
 	int rv;
 
-	if ((rv = nng_msg_alloc(&msg, MESSAGE_SIZE)) == NNG_ENOMEM) {
-		fatal("nng_msg_alloc", rv);
-	}
-	else {
+	if ((rv = nng_msg_alloc(&msg, MESSAGE_SIZE)) == 0) {
 		void* body = nng_msg_body(msg);
-		memset(body, 0, MESSAGE_SIZE);
 		memcpy(body, "ACK", MESSAGE_SIZE);
 
-		this->state = State::Send;
+		this->state = State::SendAck;
 		nng_aio_set_msg(this->aio, msg);
 		nng_ctx_send(this->ctx, this->aio);
+	}
+	else {
+		fatal("nng_msg_alloc", rv);
 	}
 }

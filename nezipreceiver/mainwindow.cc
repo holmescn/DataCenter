@@ -24,10 +24,9 @@ void MainWindow::PaintWindow(HDC& hdc, RECT& rect)
 	{
 		nCh = wsprintf(pText,
 			L"正在接收数据：\n"
-			L"已接收 Tick 数据 %d 个\n"
-			L"已保存 Tick 数据 %d 个\n"
-			L"线程状态：\n",
-			m_nTotalReceived.load(), m_nTotalStored.load());
+			L"已接收 Tick 数据 %d \n"
+			L"已转发 Tick 数据 %d \n",
+			m_nTotalReceived, m_nTotalSent);
 	} break;
 	case MainWindow::State::Error:
 		nCh = wsprintf(pText, L"发生错误:\n%s", m_szErrorText);
@@ -185,6 +184,10 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		OnRecvData(wParam, lParam);
 		break;
 
+	case WM_SENT_ONE_RECORD:
+		m_nTotalSent += 1;
+		break;
+
 	default:
 		return DefWindowProc(m_hWnd, uMsg, wParam, lParam);
 	}
@@ -310,7 +313,7 @@ void MainWindow::StartWorkers()
 	}
 
 	for (size_t i = 0; i < PARALLEL; i++) {
-		m_workers.emplace_front(m_bufferQueue);
+		m_workers.emplace_front(m_bufferQueue, m_hWnd);
 		Worker& w = m_workers.front();
 
 		if ((rv = nng_aio_alloc(&w.aio, Worker::aio_cb, &w)) != 0) {
@@ -383,7 +386,7 @@ void MainWindow::OnRecvFileData(RCV_DATA* pRcvData)
 
 MainWindow::MainWindow()
 	: m_hWndNeZip(NULL), m_state(State::Start),
-	m_nTotalReceived(0), m_nTotalStored(0)
+	m_nTotalReceived(0), m_nTotalSent(0)
 {
 	ZeroMemory(m_szErrorText, sizeof m_szErrorText);
 	ZeroMemory(m_szNeZipPath, sizeof m_szNeZipPath);

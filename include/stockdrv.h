@@ -19,7 +19,20 @@
 ****************************************************************************************/
 
 #pragma once
+#ifdef WIN32
 #include <windows.h>
+#else
+#define WINAPI
+#define _MAX_PATH 260
+#define MAX_PATH 260
+
+typedef int BOOL;
+typedef unsigned int UINT;
+typedef unsigned short WORD;
+typedef uint32_t DWORD;
+typedef void* HWND;
+typedef char* LPTSTR;
+#endif
 
 // 工作方式类型定义
 #define RCV_WORK_REQUEST			0			// 如果自编软件建议使用此方式

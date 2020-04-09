@@ -1,5 +1,6 @@
 ﻿#include <iomanip>
 #include <sstream>
+#include <spdlog/spdlog.h>
 #include "saver.h"
 
 Saver::Saver(BufferQueue_t& q, std::shared_future<void> fExit)
@@ -7,9 +8,10 @@ Saver::Saver(BufferQueue_t& q, std::shared_future<void> fExit)
 	, m_thread(&Saver::ThreadFunc, this)
 	, m_fExit(fExit)
 	, m_bufferQueue(q)
+	, m_taos(nullptr)
+	, m_taos_port(6030)
 {
-	m_taos = nullptr;
-	m_timer = std::chrono::steady_clock::now();
+	m_timer = std::chrono::steady_clock::now();	
 }
 
 Saver::~Saver()
@@ -60,6 +62,7 @@ void Saver::Connect()
 	}
 
 	if (m_taos) {
+		spdlog::info("Close previous TDengine connection.");
 		taos_close(m_taos);
 	}
 
@@ -67,12 +70,15 @@ void Saver::Connect()
 	char* user = const_cast<char*>(m_taos_user.c_str());
 	char* pass = const_cast<char*>(m_taos_pass.c_str());
 
+	spdlog::info("Connect to TDengine at {}:{} with user {}.", m_taos_ip, m_taos_port, m_taos_user);
 	m_taos = taos_connect(ip, user, pass, "stock", m_taos_port);
 
 	if (m_taos) {
+		spdlog::info("Connect to TDengine at {}:{} success.", m_taos_ip, m_taos_port);
 		m_state = State::WaitTick;
 	}
 	else {
+		spdlog::info("Connect to TDengine at {}:{} failed: {}", m_taos_ip, m_taos_port, taos_errstr(m_taos));
 		m_timer = std::chrono::steady_clock::now() + 5s;
 	}
 }
@@ -212,11 +218,12 @@ void Saver::InsertTick(const char* tableName)
 	ss << std::setprecision(4)
 		<< d.m_fSellPrice5 << ","
 		<< std::setprecision(8)
-		<< d.m_fSellVolume5 << ",";
+		<< d.m_fSellVolume5;
 
+	ss << ")";
 	std::string sql = ss.str();
 
 	if (taos_query(m_taos, sql.c_str()) == -1) {
-		// TODO Print error message
+		spdlog::error("INSERT failed: {}", taos_errstr(m_taos));
 	}
 }

@@ -32,6 +32,7 @@ class Saver
 
 	std::chrono::steady_clock::time_point m_timer;
 	BufferQueue_t& m_bufferQueue;
+
 public:
 	Saver(BufferQueue_t& q, std::shared_future<void> fExit);
 	Saver(const Saver&) = delete;
@@ -41,6 +42,12 @@ public:
 	~Saver();
 
 	void ThreadFunc();
+
+	inline void SetTDengineIP(const std::string& ip) { m_taos_ip = ip; }
+	inline void SetTDengineUser(const std::string& user) { m_taos_user = user; }
+	inline void SetTDenginePassword(const std::string& pass) { m_taos_pass = pass; }
+	inline void SetTDenginePort(int port) { m_taos_port = port; }
+	inline void Start() { m_state = State::Start; }
 
 protected:
 	void StateMachine();

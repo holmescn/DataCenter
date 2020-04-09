@@ -23,9 +23,12 @@ class Service
 	std::shared_future<void> m_fExit;
 public:
 	void StartReceivers(const char *url);
-	void StartSavers();
+	void StartSavers(const std::string &ip, const std::string &user, const std::string &pass, int port);
 	void Join();
 	void Stop();
+
+	inline void SetNumberOfReceivers(size_t n) { m_nReceivers = n; }
+	inline void SetNumberOfSavers(size_t n) { m_nSavers = n; }
 
 public:
 	Service();

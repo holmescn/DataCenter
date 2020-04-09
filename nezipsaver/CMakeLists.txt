@@ -1,11 +1,5 @@
 cmake_minimum_required (VERSION 3.8)
 
-if (WIN32)
-include_directories(
-	${CMAKE_SOURCE_DIR}/deps/TDengine/src/inc
-)
-endif()
-
 set(TARGET_NAME nezipsaver)
 add_executable(${TARGET_NAME}
 	saver.h
@@ -18,7 +12,34 @@ add_executable(${TARGET_NAME}
 )
 
 add_dependencies(${TARGET_NAME} nng spdlog)
+if (WIN32)
+target_include_directories(${TARGET_NAME} PRIVATE
+	${CMAKE_SOURCE_DIR}/deps/TDengine/src/inc
+)
+else()
+target_include_directories(${TARGET_NAME} PRIVATE
+	${TDengine_INCLUDE_DIR}
+)
+target_link_directories(${TARGET_NAME} PRIVATE
+	${TDengine_LIBRARY_DIR}
+)
+endif()
+
 target_link_libraries(${TARGET_NAME}
 	nng
 	spdlog
+	taos
+)
+
+install(
+	TARGETS ${TARGET_NAME}
+    RUNTIME DESTINATION bin                     
+         CONFIGURATIONS Release                 
+)                                               
+
+install(
+	TARGETS ${TARGET_NAME}
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib/static
 )

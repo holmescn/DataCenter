@@ -10,7 +10,7 @@ RUN sed -i -E "s/(archive|security)\.ubuntu\.com/mirrors.163.com/" /etc/apt/sour
     && sed -i -E "s/^#\s*(en_US.UTF-8|zh_CN.UTF-8)/\1/" /etc/locale.gen \
     && locale-gen \
     && cd /tmp \
-    && git clone -b release/v1.6.5.6 --single-branch https://github.com/taosdata/TDengine.git \
+    && git clone --depth=1 -b release/v1.6.5.6 --single-branch https://github.com/taosdata/TDengine.git \
     && cd TDengine \
     && sed -i -E "s/(\s*install_service\s*)$/#\1/" packaging/tools/make_install.sh \
     && mkdir build \

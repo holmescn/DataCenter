@@ -9,8 +9,8 @@ struct Receiver
 {
 	enum class State {
 		Start,
-		Recv,
-		Send
+		RecvData,
+		SendAck
 	} state;
 
 	nng_aio* aio;
@@ -26,6 +26,6 @@ struct Receiver
 	~Receiver();
 
 	static void aio_cb(void* arg);
-	void EnqueueMessage(nng_msg* msg);
+	bool EnqueueMessage(nng_msg* msg);
 	void SendAck();
 };

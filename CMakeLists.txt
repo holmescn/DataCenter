@@ -31,16 +31,19 @@ else()
 	set(CMAKE_C_FLAGS_RELEASE "-O2")
 	set(CMAKE_CXX_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 	set(CMAKE_CXX_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
+
+	find_path(TDengine_INCLUDE_DIR taos.h HINT /usr/local/include)
+	find_path(TDengine_LIBRARY_DIR taos HINT /usr/local/lib)
 endif(WIN32)
 
 add_subdirectory ("deps/nng")
-	add_subdirectory ("deps/spdlog")
+add_subdirectory ("deps/spdlog")
 
 if (WIN32)
 	add_subdirectory ("nezipreceiver")
 
 	# For development
-	add_subdirectory ("nezipsaver")
+	# add_subdirectory ("nezipsaver")
 else()
 	add_subdirectory ("nezipsaver")
 	# install(FILES ${CTPLib_LIBRARIES} DESTINATION lib)

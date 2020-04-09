@@ -4,7 +4,7 @@
 #include <concurrentqueue.h>
 #include "stockdrv.h"
 
-
+constexpr auto WM_SENT_ONE_RECORD = WM_USER + 10;
 typedef moodycamel::ConcurrentQueue<RCV_REPORT_STRUCTEx> BufferQueue_t;
 
 struct Worker
@@ -24,8 +24,9 @@ struct Worker
 	nng_aio* aio;
 	nng_msg* msg;
 	nng_ctx  ctx;
+	HWND &_hWnd;
 
-	Worker(BufferQueue_t& q);
+	Worker(BufferQueue_t& q, HWND &hWnd);
 	Worker(const Worker&) = delete;
 	Worker(Worker&&) = delete;
 	Worker& operator=(const Worker&) = delete;

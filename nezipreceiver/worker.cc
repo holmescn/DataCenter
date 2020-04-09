@@ -1,7 +1,10 @@
 #include "worker.h"
 
-Worker::Worker(BufferQueue_t& q)
-	: bufferQueue(q), msg(nullptr), state(State::Start)
+Worker::Worker(BufferQueue_t& q, HWND &hWnd)
+	: bufferQueue(q)
+	, msg(nullptr)
+	, state(State::Start)
+	, _hWnd(hWnd)
 {
 	//
 }
@@ -32,16 +35,16 @@ void Worker::aio_cb(void* arg)
 		nng_sleep_aio(1, w->aio);
 		break;
 	case State::Send:
-		if ((rv = nng_msg_alloc(&w->msg, sizeof w->rcvData)) == ENOMEM) {
-			w->msg = nullptr;
-			nng_sleep_aio(_100_ms, w->aio);
-		}
-		else {
+		if ((rv = nng_msg_alloc(&w->msg, sizeof w->rcvData)) == 0) {
 			void* body = nng_msg_body(w->msg);
 			memcpy(body, &w->rcvData, sizeof w->rcvData);
 			nng_aio_set_msg(w->aio, w->msg);
 			w->state = State::Sent;
 			nng_ctx_send(w->ctx, w->aio);
+		}
+		else {
+			w->msg = nullptr;
+			nng_sleep_aio(_100_ms, w->aio);
 		}
 		break;
 	case State::Sent:
@@ -65,7 +68,7 @@ void Worker::aio_cb(void* arg)
 			if (bodyLen >= 3 && memcmp(body, "ACK", 3) == 0) {
 				w->state = State::WaitData;
 				nng_sleep_aio(1, w->aio);
-				// TODO notify main window
+				PostMessage(w->_hWnd, WM_SENT_ONE_RECORD, NULL, NULL);
 			}
 			else {
 				// TODO bad response: bad response

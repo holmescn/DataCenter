@@ -36,8 +36,8 @@ class MainWindow : public BaseWindow<MainWindow>
 	HWND m_hWndNeZip;
 
 	BufferQueue_t m_bufferQueue;
-	std::atomic_size_t m_nTotalReceived;
-	std::atomic_size_t m_nTotalStored;
+	size_t m_nTotalReceived;
+	size_t m_nTotalSent;
 
 	std::string m_uri;
 	nng_socket m_sock;
