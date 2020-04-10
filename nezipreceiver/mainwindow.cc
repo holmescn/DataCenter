@@ -151,7 +151,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Stock_Quit(m_hWnd);
 			FreeLibrary(m_hStockDll);
 		}
-		WaitWorkers();
+		nng_close(m_sock);
 		DestroyWindow(m_hWnd);
 		break;
 
@@ -343,16 +343,6 @@ void MainWindow::StartWorkers()
 		// this starts them going (INIT state)
 		Worker::aio_cb(&w);
 	}
-}
-
-void MainWindow::WaitWorkers()
-{
-	for (auto& w : m_workers) {
-		nng_aio_wait(w.aio);
-	}
-
-	// Close all aio and context.
-	m_workers.clear();
 }
 
 void MainWindow::OnRecvData(WPARAM wParam, LPARAM lParam)

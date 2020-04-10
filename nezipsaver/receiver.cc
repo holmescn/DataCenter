@@ -69,14 +69,12 @@ bool Receiver::EnqueueMessage(nng_msg* msg)
 		bufferQueue.enqueue(rcvData);
 
 		isValidMessage = true;
-		spdlog::info("Received a valid data");
 	}
 	else {
 		// TODO invalid message.
 		nng_ctx_recv(this->ctx, this->aio);
 		isValidMessage = false;
-		spdlog::info("Received an invalid data, bodySize: {}, rcvData size: {}; DWORD: {}",
-			bodySize, sizeof rcvData, sizeof(DWORD));
+		spdlog::error("Received invalid tick message with bodySize = {}", bodySize);
 	}
 
 	nng_msg_free(msg);

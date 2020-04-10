@@ -12,8 +12,8 @@ struct Worker
 	enum class State {
 		Start,
 		WaitData,
+		PrepareSend,
 		Send,
-		Sent,
 		Ack,
 		Error
 	} state;
@@ -24,7 +24,7 @@ struct Worker
 	nng_aio* aio;
 	nng_msg* msg;
 	nng_ctx  ctx;
-	HWND &_hWnd;
+	HWND &hWnd;
 
 	Worker(BufferQueue_t& q, HWND &hWnd);
 	Worker(const Worker&) = delete;

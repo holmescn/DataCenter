@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 	spdlog::set_default_logger(console_logger);
 
 	// change log pattern
-	spdlog::set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] %v");
+	spdlog::set_pattern("[%m-%d %H:%M:%S] [%n] [%^-%L-%$] %v");
 
 	// SPDLOG_LEVEL=info,mylogger=trace
 	spdlog::cfg::load_env_levels();

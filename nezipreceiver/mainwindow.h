@@ -70,7 +70,6 @@ public:
 
 	void LoadConfig(LPCWSTR szIniFilePath);
 	void StartWorkers();
-	void WaitWorkers();
 
 public:
 	MainWindow();
