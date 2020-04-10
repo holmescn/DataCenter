@@ -386,5 +386,5 @@ MainWindow::MainWindow()
 
 MainWindow::~MainWindow()
 {
-	nng_close(m_sock);
+	//
 }

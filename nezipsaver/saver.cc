@@ -146,7 +146,7 @@ bool Saver::CreateTable(const char* tableName)
 		"ask5v FLOAT)";
 
 	if (taos_query(m_taos, sql.c_str()) == -1) {
-		int _errno = taos_errno(m_taos);
+		spdlog::error("CREATE TABLE {} failed: {}", tableName, taos_errstr(m_taos));
 		return false;
 	}
 

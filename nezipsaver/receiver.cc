@@ -36,7 +36,7 @@ void Receiver::aio_cb(void* arg)
 			msg = nng_aio_get_msg(w->aio);
 			if (w->EnqueueMessage(msg)) {
 				w->SendAck();
-				spdlog::info("Received and enqueued a tick, ack.");
+				// spdlog::info("Received and enqueued a tick, ack.");
 			}
 		}
 		else {
@@ -47,7 +47,7 @@ void Receiver::aio_cb(void* arg)
 		if ((rv = nng_aio_result(w->aio)) == 0) {
 			w->state = State::RecvData;
 			nng_ctx_recv(w->ctx, w->aio);
-			spdlog::info("Ack is sent, back to recv data.");
+			// spdlog::info("Ack is sent, back to recv data.");
 		}
 		else {
 			fatal("nng_ctx_send", rv);
