@@ -1,42 +1,40 @@
 #include <Windows.h>
 #include <shellapi.h>
-#include <fstream>
+#include <sstream>
+#include <spdlog/spdlog.h>
 #include "mainwindow.h"
 #include "stockdrv.h"
 
 void MainWindow::PaintWindow(HDC& hdc, RECT& rect)
 {
-	WCHAR* pText = m_szScreenTextBuffer;
-	size_t nCh = 0;
-
+	std::wstringstream wcs;
 	switch (m_state)
 	{
 	case MainWindow::State::Start:
-		nCh = wsprintf(pText, L"NeZip Receiver 启动");
+		wcs << L"NeZip Receiver 启动";
 		break;
 	case MainWindow::State::StartNeZip:
-		nCh = wsprintf(pText, L"正在启动 NeZip");
+		wcs << L"正在启动 NeZip";
 		break;
 	case MainWindow::State::StartDrv:
-		nCh = wsprintf(pText, L"正在启动 StockDrv");
+		wcs << L"正在启动 StockDrv";
 		break;
 	case MainWindow::State::ReceiveData:
 	{
-		nCh = wsprintf(pText,
-			L"正在接收数据：\n"
-			L"已接收 Tick 数据 %d \n"
-			L"已转发 Tick 数据 %d \n",
-			m_nTotalReceived, m_nTotalSent);
+		wcs << L"正在接收数据：" << std::endl
+			<< L"已接收 Tick 数据 " << m_nTotalReceived << std::endl
+			<< L"已转发 Tick 数据 " << m_nTotalSent << std::endl;
 	} break;
 	case MainWindow::State::Error:
-		nCh = wsprintf(pText, L"发生错误:\n%s", m_szErrorText);
+		wcs << L"发生错误:" << std::endl << m_wcsError;
 		break;
 	default:
-		nCh = wsprintf(pText, L"未知状态，请检查代码！");
+		wcs << L"未知状态，请检查代码！";
 		break;
 	}
 
-	DrawText(hdc, m_szScreenTextBuffer, nCh, &rect, DT_LEFT | DT_TOP);
+	std::wstring txt = wcs.str();
+	DrawText(hdc, txt.c_str(), txt.length(), &rect, DT_LEFT | DT_TOP);
 }
 
 void MainWindow::StartNeZip()
@@ -53,13 +51,15 @@ void MainWindow::StartNeZip()
 	m_state = State::Error;
 	switch (rc) {
 	case ERROR_FILE_NOT_FOUND:
-		wsprintf(m_szErrorText, L"没找到 %s", szExeFile);
+		m_wcsError = L"没找到 ";
+		m_wcsError += szExeFile;
 		break;
 	case ERROR_PATH_NOT_FOUND:
-		wsprintf(m_szErrorText, L"没找到 %s", m_szNeZipPath);
+		m_wcsError = L"没找到 ";
+		m_wcsError += m_szNeZipPath;
 		break;
 	default:
-		wcscpy_s(m_szErrorText, L"启动 NeZip 时发生错误。");
+		m_wcsError = L"启动 NeZip 时发生错误。";
 		break;
 	}
 }
@@ -76,27 +76,25 @@ bool MainWindow::LoadDll()
 	Stock_Quit = NULL;
 	GetStockDrvInfo = NULL;
 
-	ClearErrorText();
-
 	WCHAR szDllFile[MAX_PATH] = { 0 };
 	wsprintf(szDllFile, L"%s\\System\\Stockdrv.dll", m_szNeZipPath);
 	m_hStockDll = LoadLibrary(szDllFile);
 	if (m_hStockDll == NULL) {
-		wcscpy_s(m_szErrorText, L"载入 Dll 文件失败");
+		m_wcsError = L"载入 Dll 文件失败";
 		m_state = State::Error;
 		return false;
 	}
 
 	Stock_Init = (fnStockInit)GetProcAddress(m_hStockDll, "Stock_Init");
 	if (Stock_Init == NULL) {
-		wcscpy_s(m_szErrorText, L"载入 Stock_Init 函数失败");
+		m_wcsError = L"载入 Stock_Init 函数失败";
 		m_state = State::Error;
 		return false;
 	}
 
 	Stock_Quit = (fnStockQuit)GetProcAddress(m_hStockDll, "Stock_Quit");
 	if (Stock_Quit == NULL) {
-		wcscpy_s(m_szErrorText, L"载入 Stock_Quit 函数失败");
+		m_wcsError = L"载入 Stock_Quit 函数失败";
 		m_state = State::Error;
 		return false;
 	}
@@ -125,11 +123,6 @@ void MainWindow::MoveWindow()
 	SetWindowPos(m_hWnd, m_hWndNeZip, newX, newY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 }
 
-void MainWindow::ClearErrorText()
-{
-	ZeroMemory(m_szErrorText, MAX_ERROR_TEXT_LEN * (sizeof WCHAR));
-}
-
 void MainWindow::Fatal(const WCHAR *message, int rv)
 {
 	char mbsString[KB];
@@ -139,7 +132,9 @@ void MainWindow::Fatal(const WCHAR *message, int rv)
 	WCHAR wcsString[KB];
 	mbstowcs_s(&nCh, wcsString, mbsString, KB);
 
-	wsprintf(m_szErrorText, L"%s %s", message, wcsString);
+	std::wstringstream wcs;
+	wcs << message << L" " << wcsString;
+	m_wcsError = wcs.str();
 	m_state = State::Error;
 }
 
@@ -151,7 +146,8 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			Stock_Quit(m_hWnd);
 			FreeLibrary(m_hStockDll);
 		}
-		nng_close(m_sock);
+		m_pExit.set_value();
+		WaitWorkers();
 		DestroyWindow(m_hWnd);
 		break;
 
@@ -160,7 +156,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_TIMER:
-		this->TimerStateMachine();
+		this->StateMachine();
 		RedrawWindow(this->m_hWnd, NULL, NULL, RDW_INVALIDATE | RDW_INTERNALPAINT);
 		break;
 
@@ -195,7 +191,7 @@ LRESULT MainWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-void MainWindow::TimerStateMachine()
+void MainWindow::StateMachine()
 {
 	switch (m_state)
 	{
@@ -225,7 +221,7 @@ void MainWindow::StartDrv()
 {
 	int rc = Stock_Init(m_hWnd, WM_RECV_DATA, RCV_WORK_SENDMSG);
 	if (rc == -1) {
-		wcscpy_s(m_szErrorText, L"Stock_Init 失败");
+		m_wcsError = L"Stock_Init 失败";
 		m_state = State::Error;
 	}
 	else {
@@ -236,12 +232,14 @@ void MainWindow::StartDrv()
 BOOL MainWindow::CheckNeZipStarted(HWND hWnd, LPARAM lParam)
 {
 	MainWindow* pThis = reinterpret_cast<MainWindow*>(lParam);
+	const WCHAR* pTitle = pThis->m_wcsNeZipTitle.c_str();
+
 	size_t nTextLen = GetWindowTextLength(hWnd);
 	if (nTextLen > 0) {
 		nTextLen = nTextLen + 1;
 		WCHAR* pText = (WCHAR*)_malloca(sizeof(WCHAR) * nTextLen);
 		GetWindowText(hWnd, pText, nTextLen);
-		if (wcsstr(pText, pThis->m_szNeZipTitle)) {
+		if (wcsstr(pText, pTitle)) {
 			pThis->m_hWndNeZip = hWnd;
 			pThis->MoveWindow();
 			pThis->m_state = MainWindow::State::StartDrv;
@@ -254,8 +252,6 @@ BOOL MainWindow::CheckNeZipStarted(HWND hWnd, LPARAM lParam)
 
 void MainWindow::LoadConfig(LPCWSTR szIniFilePath)
 {
-	ClearErrorText();
-
 	GetPrivateProfileString(
 		L"NeZip",
 		L"Path",
@@ -265,26 +261,28 @@ void MainWindow::LoadConfig(LPCWSTR szIniFilePath)
 		szIniFilePath);
 
 	if (wcslen(m_szNeZipPath) == 0) {
-		wcscpy_s(m_szErrorText, L"配置文件中没有设置 NeZip 的路径。");
+		m_wcsError = L"配置文件中没有设置 NeZip 的路径。";
 		m_state = State::Error;
 		return;
 	}
 
+	WCHAR wcsBuffer[1 * KB];
 	GetPrivateProfileString(
 		L"NeZip",
 		L"Title",
-		NULL,
-		m_szNeZipTitle,
-		32,
+		L"",
+		wcsBuffer,
+		KB,
 		szIniFilePath);
 
-	if (wcslen(m_szNeZipTitle) == 0) {
-		wcscpy_s(m_szErrorText, L"配置文件中没有设置 NeZip 的标题。");
+	m_wcsNeZipTitle = wcsBuffer;
+
+	if (m_wcsNeZipTitle.length() == 0) {
+		m_wcsError = L"配置文件中没有设置 NeZip 的标题。";
 		m_state = State::Error;
 		return;
 	}
 
-	WCHAR wcsBuffer[1*KB];
 	GetPrivateProfileString(
 		L"NeZipReceiver",
 		L"Server",
@@ -303,8 +301,6 @@ void MainWindow::StartWorkers()
 {
 	int rv;
 
-	ClearErrorText();
-
 	/*  Create the socket. */
 	rv = nng_req0_open(&m_sock);
 	if (rv != 0) {
@@ -312,8 +308,9 @@ void MainWindow::StartWorkers()
 		return;
 	}
 
+	std::shared_future<void> fExit = m_pExit.get_future();
 	for (size_t i = 0; i < PARALLEL; i++) {
-		m_workers.emplace_front(m_bufferQueue, m_hWnd);
+		m_workers.emplace_front(m_bufferQueue, m_hWnd, fExit);
 		Worker& w = m_workers.front();
 
 		if ((rv = nng_aio_alloc(&w.aio, Worker::aio_cb, &w)) != 0) {
@@ -345,6 +342,15 @@ void MainWindow::StartWorkers()
 	}
 }
 
+void MainWindow::WaitWorkers()
+{
+	for (auto& w : m_workers) {
+		nng_aio_wait(w.aio);
+	}
+
+	m_workers.clear();
+}
+
 void MainWindow::OnRecvData(WPARAM wParam, LPARAM lParam)
 {
 	auto pRcvData = (RCV_DATA*)lParam;
@@ -356,7 +362,8 @@ void MainWindow::OnRecvData(WPARAM wParam, LPARAM lParam)
 		OnRecvFileData(pRcvData);
 		break;
 	default:
-		wsprintf(m_szErrorText, L"无效的 RecvData 类型: %x", wParam);
+		m_wcsError = L"无效的 RecvData 类型";
+		spdlog::error("Invalid wParam for OnRecvData: {}", wParam);
 		break;
 	}
 }
@@ -378,13 +385,10 @@ MainWindow::MainWindow()
 	: m_hWndNeZip(NULL), m_state(State::Start),
 	m_nTotalReceived(0), m_nTotalSent(0)
 {
-	ZeroMemory(m_szErrorText, sizeof m_szErrorText);
 	ZeroMemory(m_szNeZipPath, sizeof m_szNeZipPath);
-	ZeroMemory(m_szNeZipTitle, sizeof m_szNeZipTitle);
-	ZeroMemory(m_szScreenTextBuffer, sizeof m_szScreenTextBuffer);
 }
 
 MainWindow::~MainWindow()
 {
-	//
+	nng_close(m_sock);
 }

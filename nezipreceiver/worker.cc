@@ -1,10 +1,13 @@
+#include <chrono>
+#include <spdlog/spdlog.h>
 #include "worker.h"
 
-Worker::Worker(BufferQueue_t& q, HWND &ref_hWnd)
+Worker::Worker(BufferQueue_t& q, HWND& refhWnd, std::shared_future<void> fExit)
 	: bufferQueue(q)
+	, fExit(fExit)
 	, msg(nullptr)
 	, state(State::Start)
-	, hWnd(ref_hWnd)
+	, hWnd(refhWnd)
 {
 	//
 }
@@ -35,7 +38,12 @@ void Worker::aio_cb(void* arg)
 			nng_sleep_aio(1, w->aio);
 		}
 		else {
-			nng_sleep_aio(_100_ms, w->aio);
+			if (w->fExit.wait_for(std::chrono::milliseconds(1)) == std::future_status::timeout) {
+				nng_sleep_aio(_100_ms, w->aio);
+			}
+			else {
+				w->state = State::Exit;
+			}
 		}
 		break;
 	case State::PrepareSend:
@@ -59,7 +67,7 @@ void Worker::aio_cb(void* arg)
 			nng_ctx_recv(w->ctx, w->aio);
 		}
 		else {
-			// TODO handle errors: TIMEOUT, CANCELED
+			spdlog::error("State::Send result: {}", nng_strerror(rv));
 			w->state = State::Error;
 		}
 		break;
@@ -68,22 +76,24 @@ void Worker::aio_cb(void* arg)
 		if (rv == 0) {
 			nng_msg *msg = nng_aio_get_msg(w->aio);
 			size_t bodyLen = nng_msg_len(msg);
-			char* body = reinterpret_cast<char*>(nng_msg_body(msg));
-			if (bodyLen >= 3 && memcmp(body, "ACK", 3) == 0) {
+			const char* body = reinterpret_cast<char*>(nng_msg_body(msg));
+			if (bodyLen >= 3 && strcmp(body, "ACK") == 0) {
+				PostMessage(w->hWnd, WM_SENT_ONE_RECORD, NULL, NULL);
 				w->state = State::WaitData;
 				nng_sleep_aio(1, w->aio);
-				PostMessage(w->hWnd, WM_SENT_ONE_RECORD, NULL, NULL);
 			}
 			else {
-				// TODO bad response: bad response
+				spdlog::error("State::Ack invalid response.");
 				w->state = State::Error;
 			}
 			nng_msg_free(msg);
 		}
 		else {
-			// TODO handle errors: TIMEOUT, CANCELED
+			spdlog::error("State::Ack aio result: {}", nng_strerror(rv));
 			w->state = State::Error;
 		}
+		break;
+	case State::Exit:
 		break;
 	case State::Error:
 		break;

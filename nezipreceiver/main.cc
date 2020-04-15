@@ -27,17 +27,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
 	// change log pattern
 	spdlog::set_pattern("[%m-%d %H:%M:%S] [%n] [%^-%L-%$] %v");
 
-	MainWindow *win = new MainWindow();
-	win->LoadConfig(szIniFilePath);
-	win->StartWorkers();
+	MainWindow win;
+	win.LoadConfig(szIniFilePath);
+	win.StartWorkers();
 
 	DWORD dwStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
 	int nWidth = 300, nHeight = 200;
-	if (!win->Create(hInstance, L"NeZipReceiver", dwStyle, 0, CW_USEDEFAULT, CW_USEDEFAULT, nWidth, nHeight)) {
+	if (!win.Create(hInstance, L"NeZipReceiver", dwStyle, 0, CW_USEDEFAULT, CW_USEDEFAULT, nWidth, nHeight)) {
 		return 0;
 	}
 
-	ShowWindow(win->hWnd(), nCmdShow);
+	ShowWindow(win.hWnd(), nCmdShow);
 
 	// Run the message loop.
 	MSG msg = { };
@@ -45,8 +45,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, PWSTR pCmdLine, int nCmdShow
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
-
-	delete win;
 
 	return 0;
 }

@@ -1,3 +1,4 @@
+#include <future>
 #include <nng/nng.h>
 #include <nng/protocol/reqrep0/req.h>
 #include <nng/supplemental/util/platform.h>
@@ -15,18 +16,20 @@ struct Worker
 		PrepareSend,
 		Send,
 		Ack,
+		Exit,
 		Error
 	} state;
 
 	RCV_REPORT_STRUCTEx rcvData;
 	BufferQueue_t& bufferQueue;
+	std::shared_future<void> fExit;
 
 	nng_aio* aio;
 	nng_msg* msg;
 	nng_ctx  ctx;
 	HWND &hWnd;
 
-	Worker(BufferQueue_t& q, HWND &hWnd);
+	Worker(BufferQueue_t& q, HWND &hWnd, std::shared_future<void> fExit);
 	Worker(const Worker&) = delete;
 	Worker(Worker&&) = delete;
 	Worker& operator=(const Worker&) = delete;
